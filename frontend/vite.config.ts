@@ -7,17 +7,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  server: {
-    proxy: {
-      // Proxy API requests to the Go backend during development
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/r': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-    },
-  },
 });
