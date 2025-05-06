@@ -46,3 +46,4 @@ go.work
 *.njsproj
 *.sln
 *.sw?
+.vite

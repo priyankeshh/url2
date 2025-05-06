@@ -3,8 +3,8 @@ version: '3.8'
 services:
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -12,12 +12,12 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./src:/app/src
-      - ./public:/app/public
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
 
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8080:8080"

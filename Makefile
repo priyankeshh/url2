@@ -2,23 +2,29 @@
 
 # Go backend
 build:
-	go build -o url-shortener
+	cd backend && go build -o url-shortener
 
 run:
-	go run main.go
+	cd backend && go run main.go
 
 test:
-	go test ./...
+	cd backend && go test ./...
 
 clean:
-	rm -f url-shortener
+	rm -f backend/url-shortener
 
 # Docker
-docker-build:
-	docker build -t url-shortener .
+docker-build-backend:
+	docker build -t url-shortener-backend ./backend
 
-docker-run:
-	docker run -p 8080:8080 url-shortener
+docker-build-frontend:
+	docker build -t url-shortener-frontend ./frontend
+
+docker-run-backend:
+	docker run -p 8080:8080 url-shortener-backend
+
+docker-run-frontend:
+	docker run -p 3000:80 url-shortener-frontend
 
 # Docker Compose
 compose-up:
@@ -29,33 +35,35 @@ compose-down:
 
 # Frontend
 frontend-install:
-	npm install
+	cd frontend && npm install
 
 frontend-dev:
-	npm run dev
+	cd frontend && npm run dev
 
 frontend-build:
-	npm run build
+	cd frontend && npm run build
 
 # Combined commands
-dev: build
+dev:
 	@echo "Starting backend server..."
-	@./url-shortener & \
+	@cd backend && go run main.go & \
 	echo "Starting frontend server..." && \
-	npm run dev
+	cd frontend && npm run dev
 
 # Help
 help:
 	@echo "Available commands:"
-	@echo "  make build            - Build the Go backend"
-	@echo "  make run              - Run the Go backend"
-	@echo "  make test             - Run tests for the Go backend"
-	@echo "  make clean            - Remove build artifacts"
-	@echo "  make docker-build     - Build Docker image for the backend"
-	@echo "  make docker-run       - Run Docker container for the backend"
-	@echo "  make compose-up       - Start all services with Docker Compose"
-	@echo "  make compose-down     - Stop all services with Docker Compose"
-	@echo "  make frontend-install - Install frontend dependencies"
-	@echo "  make frontend-dev     - Start frontend development server"
-	@echo "  make frontend-build   - Build frontend for production"
-	@echo "  make dev              - Start both backend and frontend for development"
+	@echo "  make build                - Build the Go backend"
+	@echo "  make run                  - Run the Go backend"
+	@echo "  make test                 - Run tests for the Go backend"
+	@echo "  make clean                - Remove build artifacts"
+	@echo "  make docker-build-backend - Build Docker image for the backend"
+	@echo "  make docker-build-frontend - Build Docker image for the frontend"
+	@echo "  make docker-run-backend   - Run Docker container for the backend"
+	@echo "  make docker-run-frontend  - Run Docker container for the frontend"
+	@echo "  make compose-up           - Start all services with Docker Compose"
+	@echo "  make compose-down         - Stop all services with Docker Compose"
+	@echo "  make frontend-install     - Install frontend dependencies"
+	@echo "  make frontend-dev         - Start frontend development server"
+	@echo "  make frontend-build       - Build frontend for production"
+	@echo "  make dev                  - Start both backend and frontend for development"

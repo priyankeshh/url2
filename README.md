@@ -10,6 +10,28 @@ A modern URL shortener application with a React frontend and Go backend.
 - Responsive design that works on desktop and mobile
 - Fast and lightweight Go backend
 
+## Project Structure
+
+```
+url-shortener/
+├── backend/                # Go backend
+│   ├── docs/               # OpenAPI spec and static assets
+│   ├── handlers/           # HTTP handlers
+│   ├── store/              # URL store implementation
+│   ├── Dockerfile          # Backend Docker configuration
+│   └── main.go             # Entry point
+├── frontend/               # React frontend
+│   ├── src/                # Source code
+│   │   ├── components/     # React components
+│   │   ├── hooks/          # Custom React hooks
+│   │   ├── utils/          # Utility functions
+│   │   └── types/          # TypeScript type definitions
+│   ├── Dockerfile          # Frontend Docker configuration
+│   └── nginx.conf          # Nginx configuration for production
+├── docker-compose.yml      # Docker Compose configuration
+└── Makefile                # Build and run commands
+```
+
 ## Tech Stack
 
 ### Frontend
@@ -40,16 +62,19 @@ A modern URL shortener application with a React frontend and Go backend.
 
 2. Install frontend dependencies:
    ```bash
+   cd frontend
    npm install
    ```
 
 3. Start the Go backend:
    ```bash
+   cd backend
    go run main.go
    ```
 
 4. In a separate terminal, start the frontend development server:
    ```bash
+   cd frontend
    npm run dev
    ```
 
@@ -90,6 +115,7 @@ make help
 
 1. Build the Go binary:
    ```bash
+   cd backend
    go build -o url-shortener
    ```
 
@@ -102,10 +128,11 @@ make help
 
 1. Build the frontend:
    ```bash
+   cd frontend
    npm run build
    ```
 
-2. Serve the static files from the `dist` directory using a web server like Nginx.
+2. Serve the static files from the `frontend/dist` directory using a web server like Nginx.
 
 ## Configuration
 

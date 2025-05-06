@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# IDE files
+.idea
+.vscode
+*.swp
+*.swo
+
+# Misc
+.DS_Store
+*.env
+*.env.local
+README.md
