@@ -9,10 +9,7 @@ services:
       - key: PORT
         value: 8080
       - key: HOST
-        fromService:
-          name: url-shortener-api
-          type: web
-          property: url
+        value: https://url-shortener-api.onrender.com # This will be replaced manually after deployment
       - key: DATABASE_URL
         sync: false # This will be set manually in the Render dashboard
     healthCheckPath: /api/health
@@ -25,7 +22,4 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          name: url-shortener-api
-          type: web
-          property: url
+        value: https://url-shortener-api.onrender.com # This will be replaced manually after deployment
