@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import UrlForm from './components/UrlForm';
 import UrlResult from './components/UrlResult';
 import UrlHistory from './components/UrlHistory';
 import { useUrlShortener } from './hooks/useUrlShortener';
 import { useUrlHistory } from './hooks/useUrlHistory';
+import { useUserUrls } from './hooks/useUserUrls';
 import { UrlHistoryItem } from './types';
 import { LinkIcon } from 'lucide-react';
 
@@ -13,13 +14,35 @@ function App() {
   const [originalUrl, setOriginalUrl] = useState<string>('');
   const { shortenUrl, isLoading } = useUrlShortener();
   const { history, addToHistory, removeFromHistory, clearHistory } = useUrlHistory();
+  const { urls: serverUrls, refetch: refetchUrls } = useUserUrls();
 
-  const handleSubmit = async (url: string) => {
+  // Sync server URLs with local history when server URLs change
+  useEffect(() => {
+    if (serverUrls && serverUrls.length > 0) {
+      // Add server URLs to local history if they don't exist
+      serverUrls.forEach(item => {
+        const exists = history.some(historyItem =>
+          historyItem.shortUrl === item.short_url
+        );
+
+        if (!exists) {
+          addToHistory(item.original_url, item.short_url);
+        }
+      });
+    }
+  }, [serverUrls, history, addToHistory]);
+
+  const handleSubmit = async (url: string, alias?: string) => {
     try {
-      const result = await shortenUrl(url);
+      const result = await shortenUrl(url, alias);
       setShortUrl(result);
       setOriginalUrl(url);
       addToHistory(url, result);
+
+      // Refresh server URLs
+      setTimeout(() => {
+        refetchUrls();
+      }, 500);
     } catch (error) {
       console.error('Error shortening URL:', error);
     }
@@ -52,15 +75,15 @@ function App() {
           {!shortUrl ? (
             <UrlForm onSubmit={handleSubmit} isSubmitting={isLoading} />
           ) : (
-            <UrlResult 
-              shortUrl={shortUrl} 
+            <UrlResult
+              shortUrl={shortUrl}
               originalUrl={originalUrl}
-              onReset={handleReset} 
+              onReset={handleReset}
             />
           )}
         </div>
 
-        <UrlHistory 
+        <UrlHistory
           items={history}
           onClear={clearHistory}
           onRemoveItem={removeFromHistory}

@@ -22,3 +22,6 @@ services:
     environment:
       - PORT=8080
       - HOST=http://localhost:8080
+      - DB_PATH=urls.db
+    volumes:
+      - ./data:/app/data
