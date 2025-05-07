@@ -7,6 +7,8 @@ export interface UrlHistoryItem {
 
 export interface FormState {
   url: string;
+  alias?: string;
   error: string;
+  aliasError?: string;
   isSubmitting: boolean;
 }

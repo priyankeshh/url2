@@ -1,14 +1,14 @@
-# URL Shortener
+# Go URL Shortener
 
-A modern URL shortener application with a React frontend and Go backend.
+A feature-rich URL shortener built with Go, showcasing Go's powerful features and concurrency patterns.
 
 ## Features
 
-- Shorten long URLs to easy-to-share links
-- Copy shortened URLs to clipboard with a single click
-- View history of previously shortened URLs
-- Responsive design that works on desktop and mobile
-- Fast and lightweight Go backend
+- **Custom URL Aliases**: Create memorable short URLs with custom aliases
+- **Persistent Storage**: SQLite database ensures URLs persist across server restarts
+- **User-specific History**: Browser-based tracking of shortened URLs
+- **Concurrent URL Processing**: Background validation and analysis of URLs
+- **Metrics and Monitoring**: Real-time statistics on API usage
 
 ## Project Structure
 
@@ -42,7 +42,9 @@ url-shortener/
 ### Backend
 - Go (Golang)
 - Standard library HTTP server
-- In-memory URL storage with thread-safety
+- SQLite database for persistent storage
+- Goroutines and channels for concurrency
+- Context for request cancellation and timeouts
 
 ## Getting Started
 
@@ -155,8 +157,113 @@ The API documentation is available at `/api/docs` when the server is running.
 
 ### Endpoints
 
-- `POST /api/shorten` - Shorten a URL
+- `POST /api/shorten` - Shorten a URL (with optional custom alias)
+- `GET /api/urls` - Get user's shortened URLs
 - `GET /r/{code}` - Redirect to the original URL
+- `GET /api/metrics` - View server metrics
+- `GET /api/docs` - API documentation
+
+## Go-Specific Features
+
+This project showcases many Go-specific features and patterns:
+
+### 1. Concurrency with Goroutines and Channels
+
+- **Worker Pool Pattern**: The URL processor uses a pool of goroutines to process URLs concurrently
+- **Fan-out/Fan-in**: Results from multiple workers are collected in a single channel
+- **Context for Cancellation**: Graceful shutdown of workers using context
+- **Synchronization with WaitGroups**: Coordinating multiple goroutines
+
+```go
+// Example of worker pool pattern
+func (p *URLProcessor) startWorkers() {
+    for i := 0; i < p.workerCount; i++ {
+        p.wg.Add(1)
+        go p.worker(i)
+    }
+
+    go func() {
+        p.wg.Wait()
+        close(p.results)
+    }()
+}
+```
+
+### 2. Middleware Chaining
+
+- **HTTP Handler Wrapping**: Middleware functions that wrap handlers
+- **Context Propagation**: Request-scoped values passed through context
+- **Functional Composition**: Combining multiple middleware functions
+
+```go
+// Example of middleware chaining
+handler := handlers.MetricsMiddleware(
+    handlers.LoggingMiddleware(
+        handlers.CORSMiddleware(mux)
+    )
+)
+```
+
+### 3. Interface-based Design
+
+- **Store Interface**: Abstraction for different storage backends
+- **Dependency Injection**: Components receive their dependencies
+- **Testability**: Easy to mock dependencies for testing
+
+```go
+// Example of interface-based design
+type URLStore interface {
+    Set(url string) (string, error)
+    SetWithOptions(url, customAlias, userID string) (string, error)
+    Get(code string) (string, error)
+    GetByUser(userID string) ([]URLEntry, error)
+    Stats() int
+}
+```
+
+### 4. Go's Standard Library
+
+- **net/http**: Built-in HTTP server with no external dependencies
+- **context**: Request cancellation and value propagation
+- **sync**: Mutex and WaitGroup for synchronization
+- **embed**: Embedding static files in the binary
+- **database/sql**: Database-agnostic SQL interface
+
+### 5. Error Handling
+
+- **Error as Values**: Explicit error handling
+- **Custom Error Types**: Domain-specific errors
+- **Error Wrapping**: Preserving error context
+
+```go
+// Example of custom errors
+var (
+    ErrCodeNotFound = errors.New("code not found")
+    ErrInvalidURL   = errors.New("invalid URL")
+    ErrAliasInUse   = errors.New("custom alias is already in use")
+)
+```
+
+### 6. Graceful Shutdown
+
+- **Signal Handling**: Catching OS signals for graceful shutdown
+- **Context Timeout**: Setting deadlines for shutdown operations
+- **Resource Cleanup**: Proper closing of database connections
+
+```go
+// Example of graceful shutdown
+quit := make(chan os.Signal, 1)
+signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+<-quit
+log.Println("Shutting down server...")
+
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+if err := server.Shutdown(ctx); err != nil {
+    log.Fatalf("Server forced to shutdown: %v", err)
+}
+```
 
 ## License
 
