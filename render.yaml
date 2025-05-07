@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: url-shortener
+    env: docker
+    buildCommand: docker build -t url-shortener .
+    startCommand: docker run -p $PORT:8080 -e DATABASE_URL=$DATABASE_URL -e HOST=$HOST url-shortener
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: HOST
+        value: https://url-shortener.onrender.com
+    healthCheckPath: /api/health
+    autoDeploy: true

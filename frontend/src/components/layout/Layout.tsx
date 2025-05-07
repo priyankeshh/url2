@@ -12,7 +12,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {children}
       </div>
       <footer className="mt-8 text-purple-200 text-xs text-center opacity-80">
-        © {new Date().getFullYear()} URL Shortener | Powered by React
+         Shortify | Made by Priyankesh and Divyansh
       </footer>
     </div>
   );

@@ -48,10 +48,17 @@ func main() {
 	var urlStore store.URLStore
 
 	// Try to use PostgreSQL if connection URL is provided
-	if *dbURL != "" {
-		log.Printf("Using PostgreSQL database at %s", *dbURL)
+	connectionURL := *dbURL
 
-		postgresStore, err := store.NewPostgresURLStore(*dbURL)
+	// Check for DATABASE_URL environment variable (used by many hosting platforms)
+	if envDBURL := os.Getenv("DATABASE_URL"); envDBURL != "" {
+		connectionURL = envDBURL
+	}
+
+	if connectionURL != "" {
+		log.Printf("Using PostgreSQL database")
+
+		postgresStore, err := store.NewPostgresURLStore(connectionURL)
 		if err != nil {
 			log.Printf("Failed to create PostgreSQL store: %v", err)
 			log.Println("Falling back to in-memory store")
@@ -97,6 +104,10 @@ func main() {
 	mux.HandleFunc("/api/shorten", urlHandler.ShortenHandler)
 	mux.HandleFunc("/api/urls", urlHandler.GetUserURLsHandler)
 	mux.HandleFunc("/api/metrics", handlers.GetMetricsHandler)
+	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
 	mux.HandleFunc("/r/", func(w http.ResponseWriter, r *http.Request) {
 		// Check if the URL exists
 		code := strings.TrimPrefix(r.URL.Path, "/r/")
@@ -127,6 +138,28 @@ func main() {
 		}
 		w.Write(openAPISpec)
 	})
+
+	// Serve static files from the static directory
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip API and redirect paths
+		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/r/") {
+			return
+		}
+
+		// Check if the file exists in the static directory
+		path := "static" + r.URL.Path
+		_, err := os.Stat(path)
+
+		// If the file doesn't exist, serve the index.html file
+		if os.IsNotExist(err) {
+			http.ServeFile(w, r, "static/index.html")
+			return
+		}
+
+		// Otherwise, serve the file
+		fs.ServeHTTP(w, r)
+	}))
 
 	// Add middleware (metrics, logging, CORS)
 	handler := handlers.MetricsMiddleware(handlers.LoggingMiddleware(handlers.CORSMiddleware(mux)))

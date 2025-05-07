@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Node modules and build output
 node_modules
 dist
 dist-ssr
@@ -23,3 +24,21 @@ dist-ssr
 *.sln
 *.sw?
 .vite
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+
+# Misc
+*.swp
+*.swo

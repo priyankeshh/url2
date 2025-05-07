@@ -65,7 +65,7 @@ function App() {
           <div className="bg-purple-600 inline-flex p-3 rounded-full mb-4 shadow-glow">
             <LinkIcon size={32} className="text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">URL Shortener</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Shortify</h1>
           <p className="text-purple-200 max-w-xs mx-auto">
             Transform your long URLs into short, shareable links in seconds
           </p>
