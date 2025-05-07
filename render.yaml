@@ -1,13 +1,31 @@
 services:
+  # Backend API service
   - type: web
-    name: url-shortener
-    env: docker
-    buildCommand: docker build -t url-shortener .
-    startCommand: docker run -p $PORT:8080 -e DATABASE_URL=$DATABASE_URL -e HOST=$HOST url-shortener
+    name: url-shortener-api
+    runtime: go
+    buildCommand: cd backend && go build -o app
+    startCommand: cd backend && ./app
     envVars:
-      - key: DATABASE_URL
-        sync: false
+      - key: PORT
+        value: 8080
       - key: HOST
-        value: https://url-shortener.onrender.com
+        fromService:
+          name: url-shortener-api
+          type: web
+          property: url
+      - key: DATABASE_URL
+        sync: false # This will be set manually in the Render dashboard
     healthCheckPath: /api/health
-    autoDeploy: true
+
+  # Frontend static site
+  - type: web
+    name: url-shortener-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: url-shortener-api
+          type: web
+          property: url
