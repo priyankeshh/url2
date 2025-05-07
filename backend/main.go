@@ -53,19 +53,25 @@ func main() {
 	// Check for DATABASE_URL environment variable (used by many hosting platforms)
 	if envDBURL := os.Getenv("DATABASE_URL"); envDBURL != "" {
 		connectionURL = envDBURL
+		log.Printf("Found DATABASE_URL environment variable")
+	} else {
+		log.Printf("DATABASE_URL environment variable not found")
 	}
 
 	if connectionURL != "" {
-		log.Printf("Using PostgreSQL database")
+		log.Printf("Attempting to connect to PostgreSQL database with connection string: %s", connectionURL)
 
 		postgresStore, err := store.NewPostgresURLStore(connectionURL)
 		if err != nil {
 			log.Printf("Failed to create PostgreSQL store: %v", err)
 			log.Println("Falling back to in-memory store")
 		} else {
+			log.Printf("Successfully connected to PostgreSQL database")
 			defer postgresStore.Close()
 			urlStore = postgresStore
 		}
+	} else {
+		log.Printf("No database connection URL provided")
 	}
 
 	// Use in-memory store if PostgreSQL is not available
