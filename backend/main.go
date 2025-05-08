@@ -23,14 +23,12 @@ import (
 var docsFS embed.FS
 
 func main() {
-	// Parse command line flags
 	port := flag.Int("port", 8080, "HTTP server port")
 	host := flag.String("host", "http://localhost:8080", "Host for generated URLs")
 	dbURL := flag.String("db-url", "", "PostgreSQL connection URL")
 	workerCount := flag.Int("workers", 4, "Number of URL processor workers")
 	flag.Parse()
 
-	// Override with environment variables if set
 	if envPort := os.Getenv("PORT"); envPort != "" {
 		fmt.Sscanf(envPort, "%d", port)
 	}
@@ -44,13 +42,9 @@ func main() {
 		fmt.Sscanf(envWorkers, "%d", workerCount)
 	}
 
-	// Create URL store
 	var urlStore store.URLStore
-
-	// Try to use PostgreSQL if connection URL is provided
 	connectionURL := *dbURL
 
-	// Check for DATABASE_URL environment variable (used by many hosting platforms)
 	if envDBURL := os.Getenv("DATABASE_URL"); envDBURL != "" {
 		connectionURL = envDBURL
 		log.Printf("Found DATABASE_URL environment variable")
@@ -74,18 +68,15 @@ func main() {
 		log.Printf("No database connection URL provided")
 	}
 
-	// Use in-memory store if PostgreSQL is not available
 	if urlStore == nil {
 		log.Println("Using in-memory URL store")
 		urlStore = store.NewInMemoryURLStore()
 	}
 
-	// Create URL processor
 	log.Printf("Starting URL processor with %d workers", *workerCount)
 	urlProcessor := workers.NewURLProcessor(*workerCount)
 	defer urlProcessor.Stop()
 
-	// Start a goroutine to process URL validation results
 	go func() {
 		for result := range urlProcessor.GetResults() {
 			if result.Error != nil {
@@ -97,16 +88,11 @@ func main() {
 		}
 	}()
 
-	// Create URL handler
 	urlHandler := handlers.NewURLHandler(urlStore, *host)
-
-	// Set URL processor for the handler
 	urlHandler.SetURLProcessor(urlProcessor)
 
-	// Create router
 	mux := http.NewServeMux()
 
-	// Register API endpoints
 	mux.HandleFunc("/api/shorten", urlHandler.ShortenHandler)
 	mux.HandleFunc("/api/urls", urlHandler.GetUserURLsHandler)
 	mux.HandleFunc("/api/metrics", handlers.GetMetricsHandler)
@@ -115,10 +101,8 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 	mux.HandleFunc("/r/", func(w http.ResponseWriter, r *http.Request) {
-		// Check if the URL exists
 		code := strings.TrimPrefix(r.URL.Path, "/r/")
 		if _, err := urlStore.Get(code); err == store.ErrCodeNotFound {
-			// Serve custom 404 page
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusNotFound)
 			notFoundHTML, err := docsFS.ReadFile("docs/404.html")
@@ -130,11 +114,9 @@ func main() {
 			return
 		}
 
-		// Handle the redirect
 		urlHandler.RedirectHandler(w, r)
 	})
 
-	// Serve OpenAPI documentation
 	mux.HandleFunc("/api/docs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/yaml; charset=utf-8")
 		openAPISpec, err := docsFS.ReadFile("docs/openapi.yaml")
@@ -145,32 +127,25 @@ func main() {
 		w.Write(openAPISpec)
 	})
 
-	// Serve static files from the static directory
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip API and redirect paths
 		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/r/") {
 			return
 		}
 
-		// Check if the file exists in the static directory
 		path := "static" + r.URL.Path
 		_, err := os.Stat(path)
 
-		// If the file doesn't exist, serve the index.html file
 		if os.IsNotExist(err) {
 			http.ServeFile(w, r, "static/index.html")
 			return
 		}
 
-		// Otherwise, serve the file
 		fs.ServeHTTP(w, r)
 	}))
 
-	// Add middleware (metrics, logging, CORS)
 	handler := handlers.MetricsMiddleware(handlers.LoggingMiddleware(handlers.CORSMiddleware(mux)))
 
-	// Create server
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", *port),
 		Handler:      handler,
@@ -179,7 +154,6 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in a goroutine
 	go func() {
 		log.Printf("Starting server on %s", server.Addr)
 		log.Printf("API documentation available at %s/api/docs", *host)
@@ -188,17 +162,14 @@ func main() {
 		}
 	}()
 
-	// Set up graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
 
-	// Create a deadline for shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Attempt to gracefully shut down the server
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}

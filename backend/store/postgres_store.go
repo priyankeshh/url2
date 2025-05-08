@@ -10,31 +10,25 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// PostgresURLStore implements URLStore with a PostgreSQL database
 type PostgresURLStore struct {
 	db *sql.DB
 }
 
-// NewPostgresURLStore creates a new PostgreSQL URL store
 func NewPostgresURLStore(connStr string) (*PostgresURLStore, error) {
-	// Open PostgreSQL database
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Test the connection
 	if err := db.Ping(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Create store instance
 	store := &PostgresURLStore{
 		db: db,
 	}
 
-	// Initialize database schema
 	if err := store.initSchema(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
@@ -43,9 +37,7 @@ func NewPostgresURLStore(connStr string) (*PostgresURLStore, error) {
 	return store, nil
 }
 
-// initSchema creates the necessary tables if they don't exist
 func (s *PostgresURLStore) initSchema() error {
-	// Create URLs table
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS urls (
 			code TEXT PRIMARY KEY,
@@ -58,7 +50,6 @@ func (s *PostgresURLStore) initSchema() error {
 		return err
 	}
 
-	// Create index on user_id for faster lookups
 	_, err = s.db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_urls_user_id ON urls(user_id)
 	`)
@@ -70,19 +61,15 @@ func (s *PostgresURLStore) initSchema() error {
 	return nil
 }
 
-// Close closes the database connection
 func (s *PostgresURLStore) Close() error {
 	return s.db.Close()
 }
 
-// validateAlias checks if an alias is valid
 func validateAlias(alias string) error {
-	// Check length
 	if len(alias) < 3 || len(alias) > 20 {
 		return ErrInvalidAlias
 	}
 
-	// Check if it's alphanumeric
 	match, err := regexp.MatchString("^[a-zA-Z0-9]+$", alias)
 	if err != nil || !match {
 		return ErrInvalidAlias
@@ -91,18 +78,15 @@ func validateAlias(alias string) error {
 	return nil
 }
 
-// Set stores a URL and returns a unique code
 func (s *PostgresURLStore) Set(url string) (string, error) {
 	return s.SetWithOptions(url, "", "")
 }
 
-// SetWithOptions stores a URL with optional custom alias and user ID
 func (s *PostgresURLStore) SetWithOptions(url, customAlias, userID string) (string, error) {
 	if url == "" {
 		return "", ErrInvalidURL
 	}
 
-	// If no user ID is provided, use a default
 	if userID == "" {
 		userID = "anonymous"
 	}
@@ -110,14 +94,11 @@ func (s *PostgresURLStore) SetWithOptions(url, customAlias, userID string) (stri
 	var code string
 	var err error
 
-	// Use custom alias if provided
 	if customAlias != "" {
-		// Validate custom alias
 		if err := validateAlias(customAlias); err != nil {
 			return "", err
 		}
 
-		// Check if alias already exists
 		var exists bool
 		err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM urls WHERE code = $1)", customAlias).Scan(&exists)
 		if err != nil {
@@ -129,13 +110,11 @@ func (s *PostgresURLStore) SetWithOptions(url, customAlias, userID string) (stri
 
 		code = customAlias
 	} else {
-		// Generate a random code
 		code, err = generateCode()
 		if err != nil {
 			return "", err
 		}
 
-		// Ensure the code is unique
 		for {
 			var exists bool
 			err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM urls WHERE code = $1)", code).Scan(&exists)
@@ -152,7 +131,6 @@ func (s *PostgresURLStore) SetWithOptions(url, customAlias, userID string) (stri
 		}
 	}
 
-	// Insert the URL into the database
 	_, err = s.db.Exec(
 		"INSERT INTO urls (code, url, user_id, created_at) VALUES ($1, $2, $3, $4)",
 		code, url, userID, time.Now(),
@@ -164,7 +142,6 @@ func (s *PostgresURLStore) SetWithOptions(url, customAlias, userID string) (stri
 	return code, nil
 }
 
-// Get retrieves a URL by its code
 func (s *PostgresURLStore) Get(code string) (string, error) {
 	var url string
 	err := s.db.QueryRow("SELECT url FROM urls WHERE code = $1", code).Scan(&url)
@@ -178,7 +155,6 @@ func (s *PostgresURLStore) Get(code string) (string, error) {
 	return url, nil
 }
 
-// GetByUser retrieves all URLs for a specific user
 func (s *PostgresURLStore) GetByUser(userID string) ([]URLEntry, error) {
 	rows, err := s.db.Query(
 		"SELECT code, url, created_at FROM urls WHERE user_id = $1 ORDER BY created_at DESC",
@@ -210,7 +186,6 @@ func (s *PostgresURLStore) GetByUser(userID string) ([]URLEntry, error) {
 	return entries, nil
 }
 
-// Stats returns the number of URLs in the store
 func (s *PostgresURLStore) Stats() int {
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM urls").Scan(&count)
